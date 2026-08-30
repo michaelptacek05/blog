@@ -1,0 +1,22 @@
+# Development image only. The production multi-stage build lands in
+# ./Dockerfile in phase 7.
+FROM node:22-alpine
+
+# sharp and @node-rs/argon2 ship musl prebuilds; libc6-compat keeps the odd
+# glibc-linked helper happy.
+RUN apk add --no-cache libc6-compat
+
+WORKDIR /app
+
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Dependencies are installed inside the image so native binaries match the
+# container platform, and are kept out of the bind mount by a named volume.
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["npx", "next", "dev", "-H", "0.0.0.0", "-p", "3000"]

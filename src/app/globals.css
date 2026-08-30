@@ -1,0 +1,130 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+/* Dark mode is driven by a class on <html>, the same as michaelptacek.com. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  --muted: oklch(0.97 0.001 106.424);
+  --muted-foreground: oklch(0.553 0.013 58.071);
+  --primary: oklch(0.508 0.118 165.612);
+  --primary-foreground: oklch(0.979 0.021 166.113);
+  --accent: oklch(0.97 0.001 106.424);
+  --border: oklch(0.923 0.003 48.717);
+  --input: oklch(0.923 0.003 48.717);
+  --ring: oklch(0.709 0.01 56.259);
+  --destructive: oklch(0.577 0.245 27.325);
+
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: #191b25;
+  --foreground: #ededed;
+  color-scheme: dark;
+
+  --muted: oklch(0.268 0.007 34.298);
+  --muted-foreground: oklch(0.709 0.01 56.259);
+  --primary: oklch(0.432 0.095 166.913);
+  --primary-foreground: oklch(0.979 0.021 166.113);
+  --accent: oklch(0.268 0.007 34.298);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.553 0.013 58.071);
+  --destructive: oklch(0.704 0.191 22.216);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+
+  /* Helvetica Neue carries the reading text; it is a system face on Apple
+     devices and falls back to Helvetica/Arial elsewhere. */
+  --font-sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  /* Geist Mono, the same face as michaelptacek.com, carries metadata: dates,
+     years, categories, navigation. */
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/*
+ * rehype-pretty-code runs Shiki with a light/dark theme pair and writes both
+ * colours into --shiki-light / --shiki-dark on every token. These rules turn
+ * them into an actual colour, so no highlighting JS is needed in the browser.
+ */
+@layer components {
+  [data-theme] span {
+    color: var(--shiki-light);
+  }
+
+  .dark [data-theme] span {
+    color: var(--shiki-dark);
+  }
+}
+
+/*
+ * Outside @layer on purpose: the typography plugin's rules live in a later
+ * cascade layer, so anything layered here would lose to them.
+ */
+
+/* rehype-autolink-headings wraps heading text in an anchor — it should not
+   look like a link. */
+.prose :is(h1, h2, h3, h4, h5, h6) > a {
+  color: inherit;
+  font-weight: inherit;
+  text-decoration: none;
+}
+
+.prose :is(h1, h2, h3, h4, h5, h6) > a:hover {
+  text-decoration: underline;
+}
+
+/* Drop the literal backticks the plugin adds around inline code. */
+.prose :not(pre) > code::before,
+.prose :not(pre) > code::after {
+  content: none;
+}
+
+/* The plugin gives <pre> a dark background in both schemes, which collides
+   with Shiki's light-theme token colours. Tie it to the active theme. */
+.prose pre {
+  background-color: var(--muted);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+}
+
+/* The public shell is set in Geist Mono; the article body reads better in
+   Helvetica Neue, so prose opts back out. Code keeps the mono face through the
+   typography plugin's own rules. */
+.prose {
+  font-family: var(--font-sans);
+}
+
+.prose :is(pre, code, kbd, samp) {
+  font-family: var(--font-mono);
+}

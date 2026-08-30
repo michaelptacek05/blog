@@ -1,0 +1,19 @@
+node_modules/
+.next/
+out/
+build/
+
+.env
+.env.local
+.env.*.local
+
+*.tsbuildinfo
+next-env.d.ts
+
+.DS_Store
+*.log
+npm-debug.log*
+
+# Local uploads (in Docker these live in a named volume)
+/uploads/
+backups/

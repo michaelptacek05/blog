@@ -1,0 +1,58 @@
+# Production stack for Portainer. Pulls the image from GHCR — build and push it
+# first with `npm run docker:build && npm run docker:push`.
+services:
+  app:
+    container_name: blog
+    image: ghcr.io/michaelptacek05/blog:latest
+    restart: always
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    environment:
+      # Assembled from POSTGRES_PASSWORD so there is only one secret to keep in
+      # sync. The host is the db container's name below.
+      DATABASE_URL: postgres://blog:${POSTGRES_PASSWORD}@blog-db:5432/blog
+      SESSION_SECRET: ${SESSION_SECRET}
+      # base64 of the argon2 hash — see `npm run hash-password`.
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH}
+      SITE_URL: ${SITE_URL}
+      UPLOAD_DIR: /app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/uploads
+    networks:
+      - default
+      - nginx-proxy-manager_default
+    # No `ports:` — Nginx Proxy Manager reaches the container over the shared
+    # network. Publishing a port here would expose the app directly.
+
+  db:
+    container_name: blog-db
+    image: postgres:18-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: blog
+      POSTGRES_DB: blog
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      # postgres:18+ wants the mount at /var/lib/postgresql, not .../data —
+      # with .../data the container refuses to start.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U blog']
+      interval: 5s
+      retries: 10
+    # Only on the internal network: never reachable from outside the stack.
+    networks:
+      - default
+
+volumes:
+  pgdata:
+  uploads:
+
+networks:
+  default:
+  nginx-proxy-manager_default:
+    external: true

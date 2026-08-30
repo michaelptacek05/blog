@@ -1,0 +1,47 @@
+# Local development stack. The production stack for Portainer is a separate
+# file (phase 7) — do not deploy this one.
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: development
+    ports:
+      - '127.0.0.1:3000:3000'
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - next_cache:/app/.next
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: blog
+      POSTGRES_DB: blog
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      # postgres:18+ wants the mount at /var/lib/postgresql, not .../data —
+      # it stores data in a major-version subdirectory so pg_upgrade works.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U blog']
+      interval: 5s
+      retries: 10
+    # No `ports:` on purpose — the database stays on the compose network only.
+    # Need a GUI client for a minute? Uncomment, then comment it back:
+    # ports:
+    #   - '127.0.0.1:5432:5432'
+
+volumes:
+  pgdata:
+  node_modules:
+  next_cache:
+  uploads:
