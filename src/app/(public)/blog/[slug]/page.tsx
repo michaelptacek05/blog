@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CategoryIcon } from '@/components/category-icon';
+import { ViewBeacon } from '@/components/view-beacon';
 import { formatDate, isoDate } from '@/lib/format';
 import { renderMarkdown } from '@/lib/markdown';
 import { getPublishedPostBySlug } from '@/lib/posts';
@@ -49,6 +50,8 @@ export default async function PostPage({ params }: Props) {
 
   return (
     <article className="pb-24">
+      <ViewBeacon postId={post.id} />
+
       <header className="max-w-2xl py-16 sm:py-20">
         {post.publishedAt ? (
           <time

@@ -1,4 +1,13 @@
-import { index, integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  date,
+  index,
+  integer,
+  pgTable,
+  primaryKey,
+  serial,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 
 export const media = pgTable('media', {
   id: serial('id').primaryKey(),
@@ -44,6 +53,23 @@ export const posts = pgTable(
     index('posts_published_at_idx').on(table.publishedAt.desc()),
     index('posts_category_idx').on(table.categoryId),
   ],
+);
+
+/**
+ * Private view counter, one row per post per day (Europe/Prague). Nothing that
+ * identifies a visitor is stored — deduplication happens in memory, see
+ * lib/view-dedup.ts.
+ */
+export const postViews = pgTable(
+  'post_views',
+  {
+    postId: integer('post_id')
+      .notNull()
+      .references(() => posts.id, { onDelete: 'cascade' }),
+    day: date('day').notNull(),
+    views: integer('views').notNull().default(0),
+  },
+  (table) => [primaryKey({ columns: [table.postId, table.day] })],
 );
 
 export type Category = typeof categories.$inferSelect;

@@ -121,6 +121,22 @@ v `client_max_body_size` na NPM (fáze 7). Aplikační limit je nejnižší schv
 Titulní obrázek postu (`posts.cover_media_id`) se vybírá v editoru a zobrazuje
 se na detailu v poměru 16:9.
 
+## Zobrazení
+
+Soukromé počítadlo zobrazení je vidět jen v adminu, na detailu postu
+(celkem / 30 dní / 7 dní / dnes). Veřejně se nikde neukazuje.
+
+- Počítá se v prohlížeči: `<ViewBeacon>` po vykreslení článku pošle
+  `POST /api/views`. Crawlery bez JavaScriptu se tak nepočítají, známé boty a
+  headless prohlížeče odfiltruje user-agent a `navigator.webdriver`.
+- Endpoint vrací vždycky prázdné `204` — nikdy neprozradí počet ani to, jestli
+  se zobrazení započítalo.
+- **Bez cookies a bez osobních údajů v databázi.** Tabulka `post_views` drží
+  jen `(post_id, day, views)`, den podle `Europe/Prague`. Deduplikace (stejný
+  návštěvník = hash IP + user-agent, nejvýš jednou za 30 minut na post) běží
+  in-memory jako rate limit loginu, takže ji restart kontejneru vynuluje.
+- Přihlášený admin se nepočítá.
+
 ## Nasazení (Portainer + Nginx Proxy Manager)
 
 ### 1. Build a push image

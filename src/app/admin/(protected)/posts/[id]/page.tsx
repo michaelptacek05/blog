@@ -4,7 +4,9 @@ import { requireAdmin } from '@/lib/auth/guard';
 import { listCategories } from '@/lib/categories';
 import { getMediaById } from '@/lib/media-queries';
 import { getPostById } from '@/lib/posts';
+import { getViewStats } from '@/lib/views';
 import { PostForm } from '../post-form';
+import { ViewStatsPanel } from '../view-stats';
 
 export const metadata: Metadata = {
   title: 'Editace postu',
@@ -35,11 +37,15 @@ export default async function EditPostPage({ params }: Props) {
     notFound();
   }
 
-  const cover = post.coverMediaId ? await getMediaById(post.coverMediaId) : null;
+  const [cover, viewStats] = await Promise.all([
+    post.coverMediaId ? getMediaById(post.coverMediaId) : null,
+    getViewStats(post.id),
+  ]);
 
   return (
     <div>
       <h1 className="mb-6 text-xl font-semibold tracking-tight">Editace postu</h1>
+      <ViewStatsPanel stats={viewStats} isDraft={post.publishedAt === null} />
       <PostForm post={post} cover={cover} categories={categories} />
     </div>
   );
