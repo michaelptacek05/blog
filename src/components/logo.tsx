@@ -18,7 +18,7 @@ type Props = {
 export function Logo({ className, height = 24 }: Props) {
   return (
     <span
-      role="imag"
+      role="img"
       aria-label="Michael Ptáček"
       className={className}
       style={{
