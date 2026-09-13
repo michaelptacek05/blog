@@ -75,6 +75,15 @@ export function CategoryIcon({ icon, className }: Props) {
           <path d="m4 17 6-6-6-6M12 19h8" />
         </svg>
       );
+    case 'music':
+      // beamed eighth notes
+      return (
+        <svg {...common}>
+          <path d="M9 18V5l12-2v13" />
+          <circle cx="6" cy="18" r="3" />
+          <circle cx="18" cy="16" r="3" />
+        </svg>
+      );
     default:
       // tag
       return (

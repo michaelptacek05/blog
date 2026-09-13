@@ -15,6 +15,7 @@ export const ICON_KEYS = [
   'book',
   'camera',
   'terminal',
+  'music',
 ] as const;
 
 export type IconKey = (typeof ICON_KEYS)[number];
