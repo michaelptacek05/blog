@@ -12,11 +12,13 @@ import { hashPassword } from '../src/lib/auth/password';
 async function main(): Promise<void> {
   const rl = createInterface({ input: process.stdin, output: process.stderr });
 
-  const password = (await rl.question('Heslo: ')).trim();
+  // Not trimmed: login compares the password exactly as typed, so a hash of a
+  // trimmed copy would never match a password with outer spaces.
+  const password = await rl.question('Heslo: ');
   rl.close();
 
   if (password.length < 8) {
-    console.error('Heslo musí mít aspoň 12 znaků.');
+    console.error('Heslo musí mít aspoň 8 znaků.');
     process.exit(1);
   }
 

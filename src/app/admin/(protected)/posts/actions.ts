@@ -17,6 +17,9 @@ export type PostFormState = {
   savedAt?: string;
 };
 
+/** "autosave" comes from the editor's timer and leaves publication state alone. */
+type SaveIntent = 'publish' | 'draft' | 'autosave';
+
 type ParsedForm = {
   title: string;
   slug: string;
@@ -24,7 +27,7 @@ type ParsedForm = {
   contentMd: string;
   categoryId: number | null;
   coverMediaId: number | null;
-  publish: boolean;
+  intent: SaveIntent;
 };
 
 function readString(formData: FormData, key: string): string {
@@ -53,6 +56,8 @@ function parseForm(formData: FormData): ParsedForm | string {
   const rawCover = readString(formData, 'coverMediaId');
   const coverMediaId = /^\d+$/.test(rawCover) ? Number(rawCover) : null;
 
+  const rawIntent = readString(formData, 'intent');
+
   return {
     title,
     slug: readString(formData, 'slug'),
@@ -60,8 +65,8 @@ function parseForm(formData: FormData): ParsedForm | string {
     contentMd,
     categoryId,
     coverMediaId,
-    // Any submit button other than "publish" saves without publishing.
-    publish: readString(formData, 'intent') === 'publish',
+    // Anything unrecognised saves without publishing.
+    intent: rawIntent === 'publish' || rawIntent === 'autosave' ? rawIntent : 'draft',
   };
 }
 
@@ -96,7 +101,7 @@ export async function createPostAction(
       contentMd: parsed.contentMd,
       categoryId: parsed.categoryId,
       coverMediaId: parsed.coverMediaId,
-      publishedAt: parsed.publish ? new Date() : null,
+      publishedAt: parsed.intent === 'publish' ? new Date() : null,
     })
     .returning({ id: posts.id });
 
@@ -140,8 +145,13 @@ export async function updatePostAction(
       : await uniqueSlug(requestedSlug, (candidate) => isSlugTaken(candidate, id));
 
   // Publishing keeps the original date if the post was already published; the
-  // "draft" intent unpublishes it.
-  const publishedAt = parsed.publish ? (existing.publishedAt ?? new Date()) : null;
+  // "draft" intent unpublishes it and an autosave leaves it as it is.
+  const publishedAt =
+    parsed.intent === 'autosave'
+      ? existing.publishedAt
+      : parsed.intent === 'publish'
+        ? (existing.publishedAt ?? new Date())
+        : null;
 
   await db
     .update(posts)

@@ -4,7 +4,9 @@ import { join } from 'node:path';
 import { eq } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { media } from '@/db/schema';
+import { getSession } from '@/lib/auth/session';
 import { env } from '@/lib/env';
+import { isMediaInPublishedPost } from '@/lib/posts';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,14 +31,26 @@ export async function GET(request: Request, { params }: Props): Promise<Response
     return new Response('Not found', { status: 404 });
   }
 
+  // Images of drafts (and unused uploads) are for the admin only. They answer
+  // exactly like a missing id, so their existence does not leak either.
+  const isPublic = await isMediaInPublishedPost(mediaId);
+
+  if (!isPublic && !(await getSession())) {
+    return new Response('Not found', { status: 404 });
+  }
+
   const path = join(env.UPLOAD_DIR, row.storageName);
 
   // The bytes never change under a given name, so the name is enough to build a
   // stable validator.
   const etag = `"${createHash('sha1').update(row.storageName).digest('hex')}"`;
 
+  // A draft image must not land in a shared cache, or it would outlive the check
+  // above. Once its post is published it is served as public again.
+  const cacheControl = isPublic ? 'public, max-age=31536000, immutable' : 'private, no-store';
+
   if (request.headers.get('if-none-match') === etag) {
-    return new Response(null, { status: 304, headers: { ETag: etag } });
+    return new Response(null, { status: 304, headers: { ETag: etag, 'Cache-Control': cacheControl } });
   }
 
   let bytes: Buffer;
@@ -54,8 +68,8 @@ export async function GET(request: Request, { params }: Props): Promise<Response
     headers: {
       'Content-Type': row.mime,
       'Content-Length': String(bytes.byteLength),
-      // Immutable: the name is a UUID, a changed image gets a new one.
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      // Immutable when public: the name is a UUID, a changed image gets a new one.
+      'Cache-Control': cacheControl,
       ETag: etag,
     },
   });

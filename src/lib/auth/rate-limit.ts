@@ -10,7 +10,7 @@ const WINDOW_MS = 15 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 
 type Bucket = {
-  failures: number;
+  attempts: number;
   /** Unix ms when this bucket's window ends. */
   resetAt: number;
 };
@@ -36,29 +36,28 @@ export type RateLimitResult = {
   retryAfterMs: number;
 };
 
-export function checkLoginRateLimit(ip: string): RateLimitResult {
+/**
+ * Counts an attempt *before* the password is checked. Checking and counting in
+ * one synchronous step means parallel requests cannot all pass the limit while
+ * the slow hash verification of the first ones is still running.
+ */
+export function consumeLoginAttempt(ip: string): RateLimitResult {
   const now = Date.now();
   prune(now);
 
   const bucket = buckets.get(ip);
 
-  if (!bucket || bucket.failures < MAX_ATTEMPTS) {
+  if (!bucket) {
+    buckets.set(ip, { attempts: 1, resetAt: now + WINDOW_MS });
     return { allowed: true, retryAfterMs: 0 };
   }
 
-  return { allowed: false, retryAfterMs: Math.max(0, bucket.resetAt - now) };
-}
-
-export function registerFailedLogin(ip: string): void {
-  const now = Date.now();
-  const bucket = buckets.get(ip);
-
-  if (!bucket || bucket.resetAt <= now) {
-    buckets.set(ip, { failures: 1, resetAt: now + WINDOW_MS });
-    return;
+  if (bucket.attempts >= MAX_ATTEMPTS) {
+    return { allowed: false, retryAfterMs: Math.max(0, bucket.resetAt - now) };
   }
 
-  bucket.failures += 1;
+  bucket.attempts += 1;
+  return { allowed: true, retryAfterMs: 0 };
 }
 
 export function clearLoginAttempts(ip: string): void {

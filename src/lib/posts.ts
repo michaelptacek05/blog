@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, ne, or, sql } from 'drizzle-orm';
 import { getDb } from '@/db';
 import { categories, media, posts, type Category, type Media, type Post } from '@/db/schema';
 
@@ -70,6 +70,29 @@ export async function getPublishedPostBySlug(slug: string): Promise<PostWithRela
     .limit(1);
 
   return row ? withRelations(row) : null;
+}
+
+/**
+ * Whether a published post shows this image — as its cover or inside its body.
+ * Media ids are sequential, so anything uploaded for a draft would otherwise be
+ * one guess away for anyone.
+ */
+export async function isMediaInPublishedPost(mediaId: number): Promise<boolean> {
+  // The trailing class keeps /media/5 from matching inside /media/50.
+  const inBody = `/media/${mediaId}([^0-9]|$)`;
+
+  const [row] = await getDb()
+    .select({ id: posts.id })
+    .from(posts)
+    .where(
+      and(
+        isNotNull(posts.publishedAt),
+        or(eq(posts.coverMediaId, mediaId), sql`${posts.contentMd} ~ ${inBody}`),
+      ),
+    )
+    .limit(1);
+
+  return row !== undefined;
 }
 
 /** How many published posts each category holds, keyed by category id. */

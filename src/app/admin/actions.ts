@@ -4,11 +4,7 @@ import { redirect } from 'next/navigation';
 import { clientIp } from '@/lib/auth/client-ip';
 import { requireAdmin } from '@/lib/auth/guard';
 import { verifyAdminPassword } from '@/lib/auth/password';
-import {
-  checkLoginRateLimit,
-  clearLoginAttempts,
-  registerFailedLogin,
-} from '@/lib/auth/rate-limit';
+import { clearLoginAttempts, consumeLoginAttempt } from '@/lib/auth/rate-limit';
 import { createSession, destroySession } from '@/lib/auth/session';
 
 export type LoginState = {
@@ -24,7 +20,7 @@ export async function loginAction(
   formData: FormData,
 ): Promise<LoginState> {
   const ip = await clientIp();
-  const limit = checkLoginRateLimit(ip);
+  const limit = consumeLoginAttempt(ip);
 
   if (!limit.allowed) {
     return {
@@ -39,8 +35,8 @@ export async function loginAction(
   // not reveal whether an admin password is configured at all.
   const ok = await verifyAdminPassword(plaintext);
 
+  // The attempt was already counted above; a success wipes the slate.
   if (!ok) {
-    registerFailedLogin(ip);
     return { error: 'Nesprávné heslo.' };
   }
 
