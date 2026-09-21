@@ -13,10 +13,10 @@ export default async function HomePage() {
     <div className="pb-24">
       <section className="max-w-xl py-20 sm:py-28">
         <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
-          Michaels blog
+          Michaeluv prostor
         </h1>
         <p className="mt-5 text-[15px] leading-relaxed text-muted-foreground">
-          Welcome to my space, where I talk about things i find {' '}
+          Místo, kde mluvím o věcech, které mi příjdou {' '}
           <span className="text-foreground underline decoration-border underline-offset-4">
             cool.
           </span>
